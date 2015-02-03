@@ -172,8 +172,8 @@ module axi_mem_if
   
   enum logic [2:0] { IDLE, SINGLE_RD, BURST_RD, BURST_WR, SINGLE_WR, WAIT_WDATA_BURST, WAIT_WDATA_SINGLE, BURST_RESP } CS,NS;
   
-  logic [7:0]					CountBurstCS;
-  logic [7:0]					CountBurstNS;   
+  logic [8:0]					CountBurstCS;
+  logic [8:0]					CountBurstNS;   
   
   logic [MEM_ADDR_WIDTH-1:0]			address;
      
