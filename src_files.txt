@@ -1,0 +1,5 @@
+axi_mem_if:
+  files: [
+    axi_mem_if.sv,
+    axi_mem_if_var_latency.sv,
+  ]
