@@ -31,7 +31,6 @@ module axi_mem_if
     parameter AXI4_ID_WIDTH      = 16,
     parameter AXI4_USER_WIDTH    = 10,
     parameter AXI_NUMBYTES       = AXI4_WDATA_WIDTH/8,
-    parameter MEM_ADDR_WIDTH     = 13,
     parameter BUFF_DEPTH_SLAVE   = 4
 )
 (
@@ -102,7 +101,7 @@ module axi_mem_if
 
     output logic                                    CEN        ,
     output logic                                    WEN        ,
-    output logic  [MEM_ADDR_WIDTH-1:0]              A          ,
+    output logic  [AXI4_ADDRESS_WIDTH-1:0]          A          ,
     output logic  [AXI4_WDATA_WIDTH-1:0]            D          ,
     output logic  [AXI_NUMBYTES-1:0]                BE         ,
     input  logic  [AXI4_RDATA_WIDTH-1:0]            Q
@@ -179,13 +178,13 @@ module axi_mem_if
   logic [8:0]                                       CountBurstCS;
   logic [8:0]                                       CountBurstNS;
 
-  logic [MEM_ADDR_WIDTH-1:0]                        address;
+  logic [AXI4_ADDRESS_WIDTH-1:0]                    address;
 
 
 
   logic                                             read_req;
   logic                                             sample_AR;
-  logic [MEM_ADDR_WIDTH-1:0]                        ARADDR_Q;
+  logic [AXI4_ADDRESS_WIDTH-1:0]                    ARADDR_Q;
   logic [7:0]                                       ARLEN_Q;
   logic                                             decr_ARLEN;
   logic [AXI4_ID_WIDTH-1:0]                         ARID_Q;
@@ -193,9 +192,8 @@ module axi_mem_if
   
   
   logic                                             write_req;
-  logic [MEM_ADDR_WIDTH-1:0]                        write_address;
   logic                                             sample_AW;
-  logic [MEM_ADDR_WIDTH-1:0]                        AWADDR_Q;
+  logic [AXI4_ADDRESS_WIDTH-1:0]                    AWADDR_Q;
   logic [7:0]                                       AWLEN_Q;
   logic                                             decr_AWLEN;
   logic [AXI4_ID_WIDTH-1:0]                         AWID_Q;
@@ -394,7 +392,7 @@ module axi_mem_if
     assign RDATA = Q;
     assign D = WDATA;
 
-    assign A = address[MEM_ADDR_WIDTH-1:0];
+    assign A = address;
 
     assign WEN = (write_req) ? 1'b0 : 1'b1;
 
@@ -450,14 +448,14 @@ module axi_mem_if
           if(sample_AR)
           begin
              ARID_Q   <=  ARID; 
-             ARADDR_Q <=  ARADDR[MEM_ADDR_WIDTH+OFFSET_BIT-1:OFFSET_BIT];
+             ARADDR_Q <=  ARADDR;
              ARUSER_Q <=  ARUSER;
           end
 
 
           if(sample_AW)
           begin
-              AWADDR_Q <=  AWADDR[MEM_ADDR_WIDTH+OFFSET_BIT-1:OFFSET_BIT];
+              AWADDR_Q <=  AWADDR;
               AWID_Q   <=  AWID; 
               AWUSER_Q <=  AWUSER;
           end
@@ -521,7 +519,7 @@ module axi_mem_if
                       begin
                                     sample_AR      = 1'b1;
                                     read_req       = 1'b1;
-                                    address        = ARADDR[MEM_ADDR_WIDTH+OFFSET_BIT-1:OFFSET_BIT];
+                                    address        = ARADDR;
                                     ARREADY        = 1'b1;
 
                                     if(ARLEN == 0)
@@ -547,7 +545,7 @@ module axi_mem_if
                                   if(WVALID)
                                   begin
                                       write_req       = 1'b1;
-                                      address         =  AWADDR[MEM_ADDR_WIDTH+OFFSET_BIT-1:OFFSET_BIT];
+                                      address         =  AWADDR;
 
                                       decr_AWLEN = 1'b1;
 
@@ -599,7 +597,7 @@ module axi_mem_if
                                   if(WVALID)
                                   begin
                                       write_req       = 1'b1;
-                                      address         =  AWADDR[MEM_ADDR_WIDTH+OFFSET_BIT-1:OFFSET_BIT];
+                                      address         =  AWADDR;
 
                                       decr_AWLEN = 1'b1;
 
@@ -636,7 +634,7 @@ module axi_mem_if
                            begin
                                 sample_AR      = 1'b1;
                                 read_req       = 1'b1;
-                                address        = ARADDR[MEM_ADDR_WIDTH+OFFSET_BIT-1:OFFSET_BIT];
+                                address        = ARADDR;
                                 ARREADY        = 1'b1;
 
                                 if(ARLEN == 0)
