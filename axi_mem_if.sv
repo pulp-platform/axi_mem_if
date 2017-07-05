@@ -3,7 +3,7 @@
  *
  * This code is under development and not yet released to the public.
  * Until it is released, the code is under the copyright of ETH Zurich and
- * the University of Bologna, and may contain confidential and/or unpublished 
+ * the University of Bologna, and may contain confidential and/or unpublished
  * work. Any reuse/redistribution is strictly forbidden without written
  * permission from ETH Zurich.
  *
@@ -25,7 +25,7 @@
 
 module axi_mem_if
 #(
-    parameter AXI4_ADDRESS_WIDTH = 32,
+    parameter AXI4_ADDRESS_WIDTH = 64,
     parameter AXI4_RDATA_WIDTH   = 64,
     parameter AXI4_WDATA_WIDTH   = 64,
     parameter AXI4_ID_WIDTH      = 16,
@@ -189,8 +189,8 @@ module axi_mem_if
   logic                                             decr_ARLEN;
   logic [AXI4_ID_WIDTH-1:0]                         ARID_Q;
   logic [ AXI4_USER_WIDTH-1:0]                      ARUSER_Q;
-  
-  
+
+
   logic                                             write_req;
   logic                                             sample_AW;
   logic [AXI4_ADDRESS_WIDTH-1:0]                    AWADDR_Q;
@@ -397,8 +397,8 @@ module axi_mem_if
     assign WEN = (write_req) ? 1'b0 : 1'b1;
 
     always_comb
-    begin 
-        CEN                 =    ~(  write_req | read_req); 
+    begin
+        CEN                 =    ~(  write_req | read_req);
     end
 
 
@@ -415,7 +415,7 @@ module axi_mem_if
           //Read Channel
           ARLEN_Q      <= '0;
           ARADDR_Q     <= '0;
-          ARID_Q       <= '0; 
+          ARID_Q       <= '0;
           ARUSER_Q     <= '0;
           RVALID       <= 1'b0;
 
@@ -447,7 +447,7 @@ module axi_mem_if
 
           if(sample_AR)
           begin
-             ARID_Q   <=  ARID; 
+             ARID_Q   <=  ARID;
              ARADDR_Q <=  ARADDR;
              ARUSER_Q <=  ARUSER;
           end
@@ -456,7 +456,7 @@ module axi_mem_if
           if(sample_AW)
           begin
               AWADDR_Q <=  AWADDR;
-              AWID_Q   <=  AWID; 
+              AWID_Q   <=  AWID;
               AWUSER_Q <=  AWUSER;
           end
 
@@ -480,7 +480,7 @@ module axi_mem_if
 
 
 
-    always_comb 
+    always_comb
     begin
         CountBurstNS   = CountBurstCS;
         AWREADY        = 1'b0;
@@ -493,7 +493,7 @@ module axi_mem_if
 
         BID            = '0;
         BRESP          = `OKAY;
-        BUSER          = '0;  
+        BUSER          = '0;
         BVALID         = 1'b0;
 
         ARREADY        = 1'b0;
@@ -508,7 +508,7 @@ module axi_mem_if
 
         case(CS)
 
-          IDLE: 
+          IDLE:
           begin
 
 
@@ -533,8 +533,8 @@ module axi_mem_if
                                       CountBurstNS   = CountBurstCS + 1'b1;
                                     end
                       end
-                      else 
-                      begin 
+                      else
+                      begin
                            if(AWVALID)
                            begin
                                   ////////////////////////////////////////////////////////////
@@ -658,7 +658,7 @@ module axi_mem_if
           end //~IDLE
 
 
-          SINGLE_RD : 
+          SINGLE_RD :
           begin
             RRESP  = `OKAY;
             RID    = ARID_Q;
@@ -677,11 +677,11 @@ module axi_mem_if
                   address        = ARADDR_Q;
                   CountBurstNS   = '0;
               end
-          end //~SINGLE_RD 
+          end //~SINGLE_RD
 
 
           BURST_RD :
-          begin  
+          begin
             RRESP  = `OKAY;
             RID    = ARID_Q;
             RUSER  = ARUSER_Q;
@@ -695,7 +695,7 @@ module axi_mem_if
                     read_req      = 1'b1; // read the previous address
 
                     decr_ARLEN    = 1'b1;
-                    CountBurstNS  = CountBurstCS + 1'b1; 
+                    CountBurstNS  = CountBurstCS + 1'b1;
 
                     address       =  ARADDR_Q + CountBurstCS ;
                     RLAST         = 1'b0;
@@ -722,19 +722,19 @@ module axi_mem_if
 
 
 
-          SINGLE_WR: 
+          SINGLE_WR:
           begin
 
             BID          = AWID_Q;
             BRESP        = `OKAY;
             BUSER        = AWUSER_Q;
             BVALID       = 1'b1;
-            AWREADY      = 1'b0; 
+            AWREADY      = 1'b0;
             CountBurstNS = '0;
 
             if(BREADY)
             begin
-                            NS              = IDLE;   
+                            NS              = IDLE;
             end
             else
             begin
@@ -742,11 +742,11 @@ module axi_mem_if
             end
           end //~ SINGLE_WR
 
-          BURST_WR : 
+          BURST_WR :
           begin
                 WREADY   = 1'b1;
                 AWREADY  = 1'b0;
-                address  = AWADDR_Q + CountBurstCS ;        
+                address  = AWADDR_Q + CountBurstCS ;
 
                 if(WVALID)
                 begin
@@ -763,7 +763,7 @@ module axi_mem_if
                         decr_AWLEN     = 1'b0;
                         NS             = BURST_RESP;
                     end
- 
+
                 end
                 else
                 begin
@@ -794,7 +794,7 @@ module axi_mem_if
           end //~BURST_RESP
 
 
-          WAIT_WDATA_BURST : 
+          WAIT_WDATA_BURST :
           begin
               AWREADY        = 1'b0;
               WREADY         = 1'b1;
@@ -816,7 +816,7 @@ module axi_mem_if
           end //~WAIT_WDATA_BURST
 
 
-          WAIT_WDATA_SINGLE : 
+          WAIT_WDATA_SINGLE :
           begin
               AWREADY          = 1'b0;
               WREADY           = 1'b1;
