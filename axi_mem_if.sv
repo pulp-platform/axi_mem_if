@@ -14,9 +14,6 @@
  */
 
 // `timescale 1ns/1ps
-// `define SOD 0.5
-
-`define log2(VALUE) ((VALUE) < ( 1 ) ? 0 : (VALUE) < ( 2 ) ? 1 : (VALUE) < ( 4 ) ? 2 : (VALUE) < ( 8 ) ? 3 : (VALUE) < ( 16 )  ? 4 : (VALUE) < ( 32 )  ? 5 : (VALUE) < ( 64 )  ? 6 : (VALUE) < ( 128 ) ? 7 : (VALUE) < ( 256 ) ? 8 : (VALUE) < ( 512 ) ? 9 : (VALUE) < ( 1024 ) ? 10 : (VALUE) < ( 2048 ) ? 11 : (VALUE) < ( 4096 ) ? 12 : (VALUE) < ( 8192 ) ? 13 : (VALUE) < ( 16384 ) ? 14 : (VALUE) < ( 32768 ) ? 15 : (VALUE) < ( 65536 ) ? 16 : (VALUE) < ( 131072 ) ? 17 : (VALUE) < ( 262144 ) ? 18 : (VALUE) < ( 524288 ) ? 19 : (VALUE) < ( 1048576 ) ? 20 : (VALUE) < ( 1048576 * 2 ) ? 21 : (VALUE) < ( 1048576 * 4 ) ? 22 : (VALUE) < ( 1048576 * 8 ) ? 23 : (VALUE) < ( 1048576 * 16 ) ? 24 : 25)
 
 `define OKAY   2'b00
 `define EXOKAY 2'b01
@@ -25,21 +22,18 @@
 
 module axi_mem_if
 #(
-    parameter AXI4_ADDRESS_WIDTH = 64,
-    parameter AXI4_RDATA_WIDTH   = 64,
-    parameter AXI4_WDATA_WIDTH   = 64,
-    parameter AXI4_ID_WIDTH      = 16,
-    parameter AXI4_USER_WIDTH    = 10,
-    parameter AXI_NUMBYTES       = AXI4_WDATA_WIDTH/8,
-    parameter BUFF_DEPTH_SLAVE   = 4
+    parameter int unsigned AXI4_ADDRESS_WIDTH = 64,
+    parameter int unsigned AXI4_RDATA_WIDTH   = 64,
+    parameter int unsigned AXI4_WDATA_WIDTH   = 64,
+    parameter int unsigned AXI4_ID_WIDTH      = 16,
+    parameter int unsigned AXI4_USER_WIDTH    = 10,
+    parameter int unsigned AXI_NUMBYTES       = AXI4_WDATA_WIDTH/8,
+    parameter int unsigned BUFF_DEPTH_SLAVE   = 4
 )
 (
     input logic                                     ACLK,
     input logic                                     ARESETn,
     input logic                                     test_en_i,
-    // ---------------------------------------------------------
-    // AXI TARG Port Declarations ------------------------------
-    // ---------------------------------------------------------
     //AXI write address bus -------------- // USED// -----------
     input  logic [AXI4_ID_WIDTH-1:0]                AWID_i     ,
     input  logic [AXI4_ADDRESS_WIDTH-1:0]           AWADDR_i   ,
@@ -54,8 +48,6 @@ module axi_mem_if
     input  logic [ 3:0]                             AWQOS_i    ,
     input  logic                                    AWVALID_i  ,
     output logic                                    AWREADY_o  ,
-    // ---------------------------------------------------------
-
     //AXI write data bus -------------- // USED// --------------
     input  logic [AXI_NUMBYTES-1:0][7:0]            WDATA_i    ,
     input  logic [AXI_NUMBYTES-1:0]                 WSTRB_i    ,
@@ -63,16 +55,12 @@ module axi_mem_if
     input  logic [AXI4_USER_WIDTH-1:0]              WUSER_i    ,
     input  logic                                    WVALID_i   ,
     output logic                                    WREADY_o   ,
-    // ---------------------------------------------------------
-
     //AXI write response bus -------------- // USED// ----------
     output logic   [AXI4_ID_WIDTH-1:0]              BID_o      ,
     output logic   [ 1:0]                           BRESP_o    ,
     output logic                                    BVALID_o   ,
     output logic   [AXI4_USER_WIDTH-1:0]            BUSER_o    ,
     input  logic                                    BREADY_i   ,
-    // ---------------------------------------------------------
-
     //AXI read address bus -------------------------------------
     input  logic [AXI4_ID_WIDTH-1:0]                ARID_i     ,
     input  logic [AXI4_ADDRESS_WIDTH-1:0]           ARADDR_i   ,
@@ -87,7 +75,6 @@ module axi_mem_if
     input  logic [ 3:0]                             ARQOS_i    ,
     input  logic                                    ARVALID_i  ,
     output logic                                    ARREADY_o  ,
-    // ---------------------------------------------------------
 
     //AXI read data bus ----------------------------------------
     output  logic [AXI4_ID_WIDTH-1:0]               RID_o      ,
@@ -107,9 +94,8 @@ module axi_mem_if
     input  logic  [AXI4_RDATA_WIDTH-1:0]            Q
 );
 
-
-  localparam OFFSET_BIT = ( `log2(AXI4_WDATA_WIDTH-1) - 3 );
-
+    // for burst reads we need to shift the address of this amount e.g.: for 64 data add 8, for 32 bit data add 4
+    localparam ADDRESS_BITS= $clog2(AXI4_WDATA_WIDTH/8);
 
   // -----------------------------------------------------------
   // AXI TARG Port Declarations --------------------------------
@@ -128,7 +114,6 @@ module axi_mem_if
   logic [ 3:0]                                      AWQOS      ;
   logic                                             AWVALID    ;
   logic                                             AWREADY    ;
-  // -----------------------------------------------------------
 
   //AXI write data bus ------------------------ ----------------
   logic [AXI_NUMBYTES-1:0][7:0]                     WDATA      ;
@@ -137,7 +122,6 @@ module axi_mem_if
   logic [AXI4_USER_WIDTH-1:0]                       WUSER      ;
   logic                                             WVALID     ;
   logic                                             WREADY     ;
-  // -----------------------------------------------------------
 
   //AXI write response bus -------------------------------------
   logic   [AXI4_ID_WIDTH-1:0]                       BID        ;
@@ -145,7 +129,6 @@ module axi_mem_if
   logic                                             BVALID     ;
   logic   [AXI4_USER_WIDTH-1:0]                     BUSER      ;
   logic                                             BREADY     ;
-  // -----------------------------------------------------------
 
   //AXI read address bus ---------------------------------------
   logic [AXI4_ID_WIDTH-1:0]                         ARID       ;
@@ -161,7 +144,6 @@ module axi_mem_if
   logic [ 3:0]                                      ARQOS      ;
   logic                                             ARVALID    ;
   logic                                             ARREADY    ;
-  // -----------------------------------------------------------
 
   //AXI read data bus ------------------------------------------
   logic [AXI4_ID_WIDTH-1:0]                         RID        ;
@@ -171,48 +153,45 @@ module axi_mem_if
   logic [AXI4_USER_WIDTH-1:0]                       RUSER      ;
   logic                                             RVALID     ;
   logic                                             RREADY     ;
-  // -----------------------------------------------------------
 
-  enum logic [2:0] { IDLE, SINGLE_RD, BURST_RD, BURST_WR, SINGLE_WR, WAIT_WDATA_BURST, WAIT_WDATA_SINGLE, BURST_RESP } CS,NS;
+  enum logic [2:0] { IDLE,
+                     SINGLE_RD, BURST_RD,
+                     BURST_WR, SINGLE_WR,
+                     WAIT_WDATA_BURST,
+                     WAIT_WDATA_SINGLE,
+                     BURST_RESP
+                    } CS , NS;
 
-  logic [8:0]                                       CountBurstCS;
-  logic [8:0]                                       CountBurstNS;
+  logic [8:0]                      CountBurstCS;
+  logic [8:0]                      CountBurstNS;
 
-  logic [AXI4_ADDRESS_WIDTH-1:0]                    address;
+  logic [AXI4_ADDRESS_WIDTH-1:0]   address;
 
+  logic                            read_req;
+  logic                            sample_AR;
+  logic [AXI4_ADDRESS_WIDTH-1:0]   ARADDR_Q;
+  logic [7:0]                      ARLEN_Q;
+  logic                            decr_ARLEN;
+  logic [AXI4_ID_WIDTH-1:0]        ARID_Q;
+  logic [ AXI4_USER_WIDTH-1:0]     ARUSER_Q;
 
+  logic                            write_req;
+  logic                            sample_AW;
+  logic [AXI4_ADDRESS_WIDTH-1:0]   AWADDR_Q;
+  logic [7:0]                      AWLEN_Q;
+  logic                            decr_AWLEN;
+  logic [AXI4_ID_WIDTH-1:0]        AWID_Q;
+  logic [ AXI4_USER_WIDTH-1:0]     AWUSER_Q;
 
-  logic                                             read_req;
-  logic                                             sample_AR;
-  logic [AXI4_ADDRESS_WIDTH-1:0]                    ARADDR_Q;
-  logic [7:0]                                       ARLEN_Q;
-  logic                                             decr_ARLEN;
-  logic [AXI4_ID_WIDTH-1:0]                         ARID_Q;
-  logic [ AXI4_USER_WIDTH-1:0]                      ARUSER_Q;
-
-
-  logic                                             write_req;
-  logic                                             sample_AW;
-  logic [AXI4_ADDRESS_WIDTH-1:0]                    AWADDR_Q;
-  logic [7:0]                                       AWLEN_Q;
-  logic                                             decr_AWLEN;
-  logic [AXI4_ID_WIDTH-1:0]                         AWID_Q;
-  logic [ AXI4_USER_WIDTH-1:0]                      AWUSER_Q;
-
-  logic                                             RR_FLAG;
-
-
+  logic                            RR_FLAG;
 
    // AXI WRITE ADDRESS CHANNEL BUFFER
-   axi_aw_buffer
-   #(
+   axi_aw_buffer #(
        .ID_WIDTH     ( AXI4_ID_WIDTH      ),
        .ADDR_WIDTH   ( AXI4_ADDRESS_WIDTH ),
        .USER_WIDTH   ( AXI4_USER_WIDTH    ),
        .BUFFER_DEPTH ( BUFF_DEPTH_SLAVE   )
-   )
-   Slave_aw_buffer
-   (
+   ) slave_aw_buffer_i (
       .clk_i           ( ACLK        ),
       .rst_ni          ( ARESETn     ),
       .test_en_i       ( test_en_i   ),
@@ -248,15 +227,12 @@ module axi_mem_if
 
 
    // AXI WRITE ADDRESS CHANNEL BUFFER
-   axi_ar_buffer
-   #(
+   axi_ar_buffer #(
        .ID_WIDTH     ( AXI4_ID_WIDTH      ),
        .ADDR_WIDTH   ( AXI4_ADDRESS_WIDTH ),
        .USER_WIDTH   ( AXI4_USER_WIDTH    ),
        .BUFFER_DEPTH ( BUFF_DEPTH_SLAVE   )
-   )
-   Slave_ar_buffer
-   (
+   ) slave_ar_buffer_i (
       .clk_i           ( ACLK       ),
       .rst_ni          ( ARESETn    ),
       .test_en_i       ( test_en_i  ),
@@ -290,15 +266,11 @@ module axi_mem_if
       .master_ready_i  ( ARREADY    )
    );
 
-
-   axi_w_buffer
-   #(
+   axi_w_buffer #(
        .DATA_WIDTH(AXI4_WDATA_WIDTH),
        .USER_WIDTH(AXI4_USER_WIDTH),
        .BUFFER_DEPTH(BUFF_DEPTH_SLAVE)
-   )
-   Slave_w_buffer
-   (
+   ) slave_w_buffer_i (
         .clk_i          ( ACLK      ),
         .rst_ni         ( ARESETn   ),
         .test_en_i      ( test_en_i ),
@@ -318,15 +290,12 @@ module axi_mem_if
         .master_ready_i ( WREADY    )
     );
 
-   axi_r_buffer
-   #(
+   axi_r_buffer #(
         .ID_WIDTH(AXI4_ID_WIDTH),
         .DATA_WIDTH(AXI4_RDATA_WIDTH),
         .USER_WIDTH(AXI4_USER_WIDTH),
         .BUFFER_DEPTH(BUFF_DEPTH_SLAVE)
-   )
-   Slave_r_buffer
-   (
+   ) slave_r_buffer_i (
         .clk_i          ( ACLK       ),
         .rst_ni         ( ARESETn    ),
         .test_en_i      ( test_en_i  ),
@@ -348,17 +317,11 @@ module axi_mem_if
         .master_ready_i ( RREADY_i   )
    );
 
-
-
-
-   axi_b_buffer
-   #(
+   axi_b_buffer #(
         .ID_WIDTH(AXI4_ID_WIDTH),
         .USER_WIDTH(AXI4_USER_WIDTH),
         .BUFFER_DEPTH(BUFF_DEPTH_SLAVE)
-   )
-   Slave_b_buffer
-   (
+   ) slave_b_buffer_i (
         .clk_i          ( ACLK      ),
         .rst_ni         ( ARESETn   ),
         .test_en_i      ( test_en_i ),
@@ -376,112 +339,27 @@ module axi_mem_if
         .master_ready_i ( BREADY_i  )
    );
 
-    // Roubd Robin FLag
-    always_ff @(posedge ACLK, negedge ARESETn)
-    begin
-      if(ARESETn == 1'b0)
+    // Round Robin Flag
+    always_ff @(posedge ACLK, negedge ARESETn) begin
+        if (ARESETn == 1'b0)
             RR_FLAG <= 1'b0;
-      else
+        else
             RR_FLAG <= ~RR_FLAG;
     end
 
-
-
-    // Memory SIngle PORT interface
-    assign BE = WSTRB;
+    // Single Port Memory interface
+    assign BE    = WSTRB;
     assign RDATA = Q;
-    assign D = WDATA;
+    assign D     = WDATA;
 
-    assign A = address;
-
+    assign A   = address;
     assign WEN = (write_req) ? 1'b0 : 1'b1;
 
-    always_comb
-    begin
-        CEN                 =    ~(  write_req | read_req);
+    always_comb begin
+        CEN = ~(  write_req | read_req);
     end
 
-
-
-
-
-  always_ff @(posedge ACLK, negedge ARESETn)
-    begin
-      if(ARESETn == 1'b0)
-      begin
-          CS           <= IDLE;
-          CountBurstCS <= '0;
-
-          //Read Channel
-          ARLEN_Q      <= '0;
-          ARADDR_Q     <= '0;
-          ARID_Q       <= '0;
-          ARUSER_Q     <= '0;
-          RVALID       <= 1'b0;
-
-          //Write Channel
-          AWADDR_Q     <= '0;
-          AWID_Q       <= '0;
-          AWUSER_Q     <= '0;
-          AWLEN_Q      <= '0;
-      end
-      else
-      begin
-          CS <= NS;
-
-          CountBurstCS <= CountBurstNS;
-
-          RVALID <= read_req;
-
-          if(sample_AR)
-          begin
-              ARLEN_Q  <=  ARLEN;
-          end
-          else
-          begin
-              if(decr_ARLEN)
-                ARLEN_Q  <=  ARLEN_Q - 1'b1;
-          end
-
-
-
-          if(sample_AR)
-          begin
-             ARID_Q   <=  ARID;
-             ARADDR_Q <=  ARADDR;
-             ARUSER_Q <=  ARUSER;
-          end
-
-
-          if(sample_AW)
-          begin
-              AWADDR_Q <=  AWADDR;
-              AWID_Q   <=  AWID;
-              AWUSER_Q <=  AWUSER;
-          end
-
-
-          case({sample_AW,decr_AWLEN})
-          2'b00: begin AWLEN_Q  <=  AWLEN_Q;         end
-          2'b01: begin AWLEN_Q  <=  AWLEN_Q - 1'b1;  end
-          2'b10: begin AWLEN_Q  <=  AWLEN;           end
-          2'b11: begin AWLEN_Q  <=  AWLEN   - 1'b1;  end
-          endcase
-
-
-      end
-    end
-
-
-
-
-
-
-
-
-
-    always_comb
-    begin
+    always_comb begin
         CountBurstNS   = CountBurstCS;
         AWREADY        = 1'b0;
         WREADY         = 1'b0;
@@ -506,339 +384,293 @@ module axi_mem_if
         RLAST          = 1'b0;
         RID            = '0;
 
-        case(CS)
+        case (CS)
+            IDLE: begin
+                case (RR_FLAG)
+                    1'b0: begin // Priority on Read
+                        if (ARVALID == 1'b1) begin
+                            sample_AR      = 1'b1;
+                            read_req       = 1'b1;
+                            address        = ARADDR;
+                            ARREADY        = 1'b1;
 
-          IDLE:
-          begin
+                            if (ARLEN == 0) begin
+                                NS = SINGLE_RD;
+                                CountBurstNS   = '0;
+                            end else  begin
+                                NS = BURST_RD;
+                                CountBurstNS = CountBurstCS + 1'b1;
+                            end
+                        end else begin
+                            if (AWVALID) begin
+                                AWREADY   = 1'b1;
+                                sample_AW = 1'b1;
+                                WREADY    = 1'b1;
 
+                                if (WVALID) begin
+                                    write_req = 1'b1;
+                                    address   =  AWADDR;
 
-            case(RR_FLAG)
-            1'b0: begin // Priority on Read
+                                    decr_AWLEN = 1'b1;
 
-                      if(ARVALID == 1'b1)
-                      begin
-                                    sample_AR      = 1'b1;
-                                    read_req       = 1'b1;
-                                    address        = ARADDR;
-                                    ARREADY        = 1'b1;
-
-                                    if(ARLEN == 0)
-                                    begin
-                                      NS = SINGLE_RD;
-                                      CountBurstNS   = '0;
+                                    if (AWLEN == 0) begin
+                                          NS            = SINGLE_WR;
+                                          CountBurstNS  = 0;
+                                    end else begin
+                                          NS            = BURST_WR;
+                                          CountBurstNS  = 1;
                                     end
-                                    else
-                                    begin
-                                      NS = BURST_RD;
-                                      CountBurstNS   = CountBurstCS + 1'b1;
+                                end else begin // GOT ADDRESS WRITE, not DATA
+
+                                    write_req  = 1'b0;
+                                    address    = '0;
+
+                                    if (AWLEN == 0) begin
+                                        NS           =  WAIT_WDATA_SINGLE;
+                                        CountBurstNS = 0;
+                                    end else begin
+                                        NS           =  WAIT_WDATA_BURST;
+                                        CountBurstNS = 0;
                                     end
-                      end
-                      else
-                      begin
-                           if(AWVALID)
-                           begin
-                                  ////////////////////////////////////////////////////////////
-                                  AWREADY         = 1'b1;
-                                  sample_AW       = 1'b1;
-                                  WREADY          = 1'b1;
-
-                                  if(WVALID)
-                                  begin
-                                      write_req       = 1'b1;
-                                      address         =  AWADDR;
-
-                                      decr_AWLEN = 1'b1;
-
-                                      if(AWLEN == 0)
-                                      begin
-                                            NS              = SINGLE_WR;
-                                            CountBurstNS    = 0;
-                                      end
-                                      else
-                                      begin
-                                            NS              = BURST_WR;
-                                            CountBurstNS    = 1;
-                                      end
-                                  end
-                                  else // GOT ADDRESS WRITE, not DATA
-                                  begin
-                                      write_req       = 1'b0;
-                                      address         = '0;
-
-                                      if(AWLEN == 0)
-                                      begin
-                                        NS                =  WAIT_WDATA_SINGLE;
-                                        CountBurstNS      = 0;
-                                      end
-                                      else
-                                      begin
-                                        NS                =  WAIT_WDATA_BURST;
-                                        CountBurstNS      = 0;
-                                      end
-                                  end
-                                  ////////////////////////////////////////////////////////////
-
-                           end
-                           else // No requests
-                           begin
-                              NS = IDLE;
-                           end
-                      end
-            end
-
-            1'b1: begin
-                      if(AWVALID)
-                      begin
-                                  ////////////////////////////////////////////////////////////
-                                  AWREADY         = 1'b1;
-                                  sample_AW       = 1'b1;
-                                  WREADY          = 1'b1;
-
-                                  if(WVALID)
-                                  begin
-                                      write_req       = 1'b1;
-                                      address         =  AWADDR;
-
-                                      decr_AWLEN = 1'b1;
-
-                                      if(AWLEN == 0)
-                                      begin
-                                            NS              = SINGLE_WR;
-                                            CountBurstNS    = 0;
-                                      end
-                                      else
-                                      begin
-                                            NS              = BURST_WR;
-                                            CountBurstNS    = 1;
-                                      end
-                                  end
-                                  else // GOT ADDRESS WRITE, not DATA
-                                  begin
-                                      write_req       = 1'b0;
-                                      address         = '0;
-
-                                      if(AWLEN == 0)
-                                      begin
-                                        NS                =  WAIT_WDATA_SINGLE;
-                                        CountBurstNS      = 0;
-                                      end
-                                      else
-                                      begin
-                                        NS                =  WAIT_WDATA_BURST;
-                                        CountBurstNS      = 0;
-                                      end
-                                  end
-                                  ////////////////////////////////////////////////////////////
-                      end
-                      else if(ARVALID)
-                           begin
-                                sample_AR      = 1'b1;
-                                read_req       = 1'b1;
-                                address        = ARADDR;
-                                ARREADY        = 1'b1;
-
-                                if(ARLEN == 0)
-                                begin
-                                  NS = SINGLE_RD;
-                                  CountBurstNS   = '0;
                                 end
-                                else
-                                begin
-                                  NS = BURST_RD;
-                                  CountBurstNS   = CountBurstCS + 1'b1;
-                                end
-                           end
-                           else
-                           begin
+                            end else begin// No requests
                                 NS = IDLE;
-                           end
+                            end
+                        end
+                    end
+
+                    1'b1: begin
+                        if (AWVALID) begin
+                            AWREADY         = 1'b1;
+                            sample_AW       = 1'b1;
+                            WREADY          = 1'b1;
+
+                            if (WVALID) begin
+                                write_req       = 1'b1;
+                                address         =  AWADDR;
+                                decr_AWLEN      = 1'b1;
+
+                                if(AWLEN == 0) begin
+                                    NS              = SINGLE_WR;
+                                    CountBurstNS    = 0;
+                                end else begin
+                                    NS              = BURST_WR;
+                                    CountBurstNS    = 1;
+                                end
+                            end else begin// GOT ADDRESS WRITE, not DATA
+                                write_req       = 1'b0;
+                                address         = '0;
+
+                                if (AWLEN == 0) begin
+                                    NS                =  WAIT_WDATA_SINGLE;
+                                    CountBurstNS      = 0;
+                                end else begin
+                                    NS                =  WAIT_WDATA_BURST;
+                                    CountBurstNS      = 0;
+                                end
+                            end
+                        end else if (ARVALID) begin
+                            sample_AR      = 1'b1;
+                            read_req       = 1'b1;
+                            address        = ARADDR;
+                            ARREADY        = 1'b1;
+
+                            if(ARLEN == 0) begin
+                              NS = SINGLE_RD;
+                              CountBurstNS   = '0;
+                            end else begin
+                              NS = BURST_RD;
+                              CountBurstNS   = CountBurstCS + 1'b1;
+                            end
+                        end else begin
+                            NS = IDLE;
+                        end
+                    end
+                endcase
             end
-            endcase
 
-          end //~IDLE
-
-
-          SINGLE_RD :
-          begin
-            RRESP  = `OKAY;
-            RID    = ARID_Q;
-            RUSER  = ARUSER_Q;
-            RLAST  = 1'b1;
-            // we have a valid response here, waiting to be delivered
-            if(RREADY)
-            begin
-                      NS             = IDLE;
-                      CountBurstNS   = '0;
-              end
-              else // NOt ready: stay here untile RR RADY is OK
-              begin
-                  NS             = SINGLE_RD;
-                  read_req       = 1'b1;
-                  address        = ARADDR_Q;
-                  CountBurstNS   = '0;
-              end
-          end //~SINGLE_RD
-
-
-          BURST_RD :
-          begin
-            RRESP  = `OKAY;
-            RID    = ARID_Q;
-            RUSER  = ARUSER_Q;
-            ARREADY       = 1'b0;
-
-            if(RREADY)
-            begin
-                if(ARLEN_Q > 0)
-                begin
-                    NS         = BURST_RD;
-                    read_req      = 1'b1; // read the previous address
-
-                    decr_ARLEN    = 1'b1;
-                    CountBurstNS  = CountBurstCS + 1'b1;
-
-                    address       =  ARADDR_Q + CountBurstCS ;
-                    RLAST         = 1'b0;
-
+            SINGLE_RD: begin
+                RRESP  = `OKAY;
+                RID    = ARID_Q;
+                RUSER  = ARUSER_Q;
+                RLAST  = 1'b1;
+                // we have a valid response here, waiting to be delivered
+                if (RREADY) begin
+                    NS             = IDLE;
+                    CountBurstNS   = '0;
+                end else begin// NOt ready: stay here untile RR RADY is OK
+                    NS             = SINGLE_RD;
+                    read_req       = 1'b1;
+                    address        = ARADDR_Q;
+                    CountBurstNS   = '0;
                 end
-                else //BURST_LAST
-                begin
-                              RLAST         = 1'b1;
-                              NS            = IDLE;
-                              CountBurstNS  = '0;
+            end
 
+            BURST_RD:  begin
+
+                RRESP   = `OKAY;
+                RID     = ARID_Q;
+                RUSER   = ARUSER_Q;
+                ARREADY = 1'b0;
+
+                if (RREADY) begin
+                    if (ARLEN_Q > 0) begin
+                        NS         = BURST_RD;
+                        read_req      = 1'b1; // read the previous address
+
+                        decr_ARLEN    = 1'b1;
+                        CountBurstNS  = CountBurstCS + 1'b1;
+
+                        address       =  ARADDR_Q + (CountBurstCS << ADDRESS_BITS);
+                        RLAST         = 1'b0;
+                    end else begin // BURST_LAST
+                        RLAST         = 1'b1;
+                        NS            = IDLE;
+                        CountBurstNS  = '0;
+                    end
+                end else begin // not Ready
+                    NS           = BURST_RD;
+                    read_req     = 1'b1; // read the previous address
+                    decr_ARLEN   = 1'b0;
+                    address      = ARADDR_Q + ((CountBurstCS - 1) << ADDRESS_BITS);
+                    ARREADY      = 1'b0;
                 end
             end
-            else // not Ready
-            begin
-                NS           = BURST_RD;
-                read_req     = 1'b1; // read the previous address
-                decr_ARLEN   = 1'b0;
-                address      =  ARADDR_Q + CountBurstCS - 1;
-                ARREADY      = 1'b0;
+
+            SINGLE_WR: begin
+                BID          = AWID_Q;
+                BRESP        = `OKAY;
+                BUSER        = AWUSER_Q;
+                BVALID       = 1'b1;
+                AWREADY      = 1'b0;
+                CountBurstNS = '0;
+
+                if (BREADY)  begin
+                    NS = IDLE;
+                end else begin
+                    NS = SINGLE_WR;
+                end
             end
 
-          end //~BURST_RD
-
-
-
-          SINGLE_WR:
-          begin
-
-            BID          = AWID_Q;
-            BRESP        = `OKAY;
-            BUSER        = AWUSER_Q;
-            BVALID       = 1'b1;
-            AWREADY      = 1'b0;
-            CountBurstNS = '0;
-
-            if(BREADY)
-            begin
-                            NS              = IDLE;
-            end
-            else
-            begin
-                        NS                 = SINGLE_WR;
-            end
-          end //~ SINGLE_WR
-
-          BURST_WR :
-          begin
+            BURST_WR: begin
                 WREADY   = 1'b1;
                 AWREADY  = 1'b0;
-                address  = AWADDR_Q + CountBurstCS ;
+                address  = AWADDR_Q + (CountBurstCS << ADDRESS_BITS);
 
-                if(WVALID)
-                begin
-                    write_req      = 1'b1; // read the previous address
+                if (WVALID) begin
+                    write_req = 1'b1; // read the previous address
 
-                    if(AWLEN_Q > 0)
-                    begin
-                        NS             = BURST_WR;
-                        decr_AWLEN     = 1'b1;
-                        CountBurstNS   = CountBurstCS + 1'b1;
+                      if (AWLEN_Q > 0) begin
+                          NS           = BURST_WR;
+                          decr_AWLEN   = 1'b1;
+                          CountBurstNS = CountBurstCS + 1'b1;
+                      end else begin
+                          decr_AWLEN   = 1'b0;
+                          NS           = BURST_RESP;
                     end
-                    else
-                    begin
-                        decr_AWLEN     = 1'b0;
-                        NS             = BURST_RESP;
-                    end
-
+                end else begin
+                    write_req  = 1'b0; // read the previous address
+                    decr_AWLEN = 1'b0;
+                    NS         = BURST_WR;
                 end
-                else
-                begin
-                    write_req      = 1'b0; // read the previous address
-                    decr_AWLEN     = 1'b0;
-                    NS             = BURST_WR;
+            end
+
+            BURST_RESP: begin
+                BVALID       = 1'b1;
+                BID          = AWID_Q;
+                BRESP        = `OKAY;
+                BUSER        = AWUSER_Q;
+                AWREADY      = 1'b0;
+                CountBurstNS = '0;
+
+                if (BREADY) begin
+                    NS = IDLE;
+                end else begin // ~BREADY
+                    NS = BURST_RESP;
                 end
-          end //~ BURST_WR
+            end
 
+            WAIT_WDATA_BURST: begin
+                AWREADY  = 1'b0;
+                WREADY   = 1'b1;
+                address  =  AWADDR_Q;
 
-          BURST_RESP :
-          begin
-                          BVALID       = 1'b1;
-                          BID          = AWID_Q;
-                          BRESP        = `OKAY;
-                          BUSER        = AWUSER_Q;
-                          AWREADY      = 1'b0;
-                          CountBurstNS = '0;
+                if (WVALID) begin
+                    write_req    = 1'b1;
+                    NS           = BURST_WR;
+                    CountBurstNS = 1;
+                    decr_AWLEN   = 1'b1;
+                end else begin
+                    write_req    = 1'b0;
+                    NS           = WAIT_WDATA_BURST; // wait for data
+                    CountBurstNS = '0;
+                end
+            end
 
-                          if(BREADY)
-                          begin
-                                NS              = IDLE;
-                          end
-                          else //~BREADY
-                          begin
-                              NS   = BURST_RESP;
-                          end
-          end //~BURST_RESP
+            WAIT_WDATA_SINGLE: begin
+                AWREADY          = 1'b0;
+                WREADY           = 1'b1;
+                CountBurstNS     = '0;
+                decr_AWLEN       =  1'b0;
+                address          =  AWADDR_Q;
 
+                if (WVALID) begin
+                    write_req        =  1'b1;
+                    NS               =  BURST_RESP;
+                end else begin
+                    NS = WAIT_WDATA_SINGLE; // wait for data
+                end
+            end
 
-          WAIT_WDATA_BURST :
-          begin
-              AWREADY        = 1'b0;
-              WREADY         = 1'b1;
-              address        =  AWADDR_Q;
+            default:
+              NS = CS;
+        endcase
+    end
 
-              if(WVALID)
-              begin
-                        write_req        =  1'b1;
-                        NS               =  BURST_WR;
-                        CountBurstNS     =  1;
-                        decr_AWLEN       =  1'b1;
-              end
-              else
-              begin
-                        write_req              =  1'b0;
-                        NS                     = WAIT_WDATA_BURST; // wait for data
-                        CountBurstNS           = '0;
-              end
-          end //~WAIT_WDATA_BURST
+    // Registers
+    always_ff @(posedge ACLK, negedge ARESETn) begin
+      if (ARESETn == 1'b0) begin
+          CS           <= IDLE;
+          CountBurstCS <= '0;
 
+          //Read Channel
+          ARLEN_Q      <= '0;
+          ARADDR_Q     <= '0;
+          ARID_Q       <= '0;
+          ARUSER_Q     <= '0;
+          RVALID       <= 1'b0;
 
-          WAIT_WDATA_SINGLE :
-          begin
-              AWREADY          = 1'b0;
-              WREADY           = 1'b1;
-              CountBurstNS     = '0;
-              decr_AWLEN       =  1'b0;
-              address          =  AWADDR_Q;
-
-              if(WVALID)
-              begin
-                        write_req        =  1'b1;
-                        NS               =  BURST_RESP;
-              end
-              else
-              begin
-                        NS = WAIT_WDATA_SINGLE; // wait for data
-              end
-          end //~WAIT_WDATA_SINGLE
-
-          default : begin
-            NS = CS;
+          //Write Channel
+          AWADDR_Q     <= '0;
+          AWID_Q       <= '0;
+          AWUSER_Q     <= '0;
+          AWLEN_Q      <= '0;
+      end else begin
+          CS           <= NS;
+          CountBurstCS <= CountBurstNS;
+          RVALID       <= read_req;
+          if (sample_AR) begin
+              ARLEN_Q  <=  ARLEN;
+              ARID_Q   <=  ARID;
+              ARADDR_Q <=  ARADDR;
+              ARUSER_Q <=  ARUSER;
+          end else begin
+              if(decr_ARLEN)
+                ARLEN_Q  <=  ARLEN_Q - 1'b1;
           end
 
-        endcase
+          if (sample_AW) begin
+              AWADDR_Q <=  AWADDR;
+              AWID_Q   <=  AWID;
+              AWUSER_Q <=  AWUSER;
+          end
+
+          case({sample_AW,decr_AWLEN})
+          2'b00: AWLEN_Q  <=  AWLEN_Q;
+          2'b01: AWLEN_Q  <=  AWLEN_Q - 1'b1;
+          2'b10: AWLEN_Q  <=  AWLEN;
+          2'b11: AWLEN_Q  <=  AWLEN   - 1'b1;
+          endcase
+      end
     end
 endmodule
