@@ -154,9 +154,9 @@ module axi_mem_if
   logic                                             RVALID     ;
   logic                                             RREADY     ;
 
-  enum logic [2:0] { IDLE,
-                     SINGLE_RD, BURST_RD,
-                     BURST_WR, SINGLE_WR,
+  enum logic [3:0] { IDLE,
+                     SINGLE_RD, BURST_RD, WRAP_RD,
+                     BURST_WR, SINGLE_WR, WRAP_WR,
                      WAIT_WDATA_BURST,
                      WAIT_WDATA_SINGLE,
                      BURST_RESP
@@ -166,11 +166,14 @@ module axi_mem_if
   logic [8:0]                      CountBurstNS;
 
   logic [AXI4_ADDRESS_WIDTH-1:0]   address;
+  logic [AXI4_ADDRESS_WIDTH-1:0]   address_q;
 
   logic                            read_req;
   logic                            sample_AR;
   logic [AXI4_ADDRESS_WIDTH-1:0]   ARADDR_Q;
   logic [7:0]                      ARLEN_Q;
+  logic [63:0]                     arlen_fixed_q;
+
   logic                            decr_ARLEN;
   logic [AXI4_ID_WIDTH-1:0]        ARID_Q;
   logic [ AXI4_USER_WIDTH-1:0]     ARUSER_Q;
@@ -179,11 +182,16 @@ module axi_mem_if
   logic                            sample_AW;
   logic [AXI4_ADDRESS_WIDTH-1:0]   AWADDR_Q;
   logic [7:0]                      AWLEN_Q;
+  logic [63:0]                     awlen_fixed_q;
+
   logic                            decr_AWLEN;
   logic [AXI4_ID_WIDTH-1:0]        AWID_Q;
   logic [ AXI4_USER_WIDTH-1:0]     AWUSER_Q;
 
   logic                            RR_FLAG;
+
+  logic [2:0]                      ar_size_q;
+  logic [2:0]                      aw_size_q;
 
    // AXI WRITE ADDRESS CHANNEL BUFFER
    axi_aw_buffer #(
@@ -383,6 +391,9 @@ module axi_mem_if
         RUSER          = '0;
         RLAST          = 1'b0;
         RID            = '0;
+        // save address
+        address        = address_q;
+        NS = CS;
 
         case (CS)
             IDLE: begin
@@ -394,11 +405,11 @@ module axi_mem_if
                             address        = ARADDR;
                             ARREADY        = 1'b1;
 
-                            if (ARLEN == 0) begin
+                            if (ARLEN == 2'b0) begin
                                 NS = SINGLE_RD;
                                 CountBurstNS   = '0;
                             end else  begin
-                                NS = BURST_RD;
+                                NS           = (ARLEN == 2'b01) ? BURST_RD : WRAP_RD;
                                 CountBurstNS = CountBurstCS + 1'b1;
                             end
                         end else begin
@@ -417,8 +428,8 @@ module axi_mem_if
                                           NS            = SINGLE_WR;
                                           CountBurstNS  = 0;
                                     end else begin
-                                          NS            = BURST_WR;
-                                          CountBurstNS  = 1;
+                                        NS            = (AWLEN == 2'b01) ? BURST_WR : WRAP_WR;
+                                        CountBurstNS  = 1;
                                     end
                                 end else begin // GOT ADDRESS WRITE, not DATA
 
@@ -450,23 +461,23 @@ module axi_mem_if
                                 address         =  AWADDR;
                                 decr_AWLEN      = 1'b1;
 
-                                if(AWLEN == 0) begin
+                                if (AWLEN == 2'b00) begin
                                     NS              = SINGLE_WR;
                                     CountBurstNS    = 0;
                                 end else begin
-                                    NS              = BURST_WR;
+                                    NS              = (AWLEN == 2'b01) ? BURST_WR : WRAP_WR;
                                     CountBurstNS    = 1;
                                 end
-                            end else begin// GOT ADDRESS WRITE, not DATA
-                                write_req       = 1'b0;
-                                address         = '0;
+                            end else begin // GOT ADDRESS WRITE, not DATA
+                                write_req  = 1'b0;
+                                address    = '0;
 
                                 if (AWLEN == 0) begin
-                                    NS                =  WAIT_WDATA_SINGLE;
-                                    CountBurstNS      = 0;
+                                    NS           =  WAIT_WDATA_SINGLE;
+                                    CountBurstNS = 0;
                                 end else begin
-                                    NS                =  WAIT_WDATA_BURST;
-                                    CountBurstNS      = 0;
+                                    NS           =  WAIT_WDATA_BURST;
+                                    CountBurstNS = 0;
                                 end
                             end
                         end else if (ARVALID) begin
@@ -475,12 +486,12 @@ module axi_mem_if
                             address        = ARADDR;
                             ARREADY        = 1'b1;
 
-                            if(ARLEN == 0) begin
-                              NS = SINGLE_RD;
-                              CountBurstNS   = '0;
+                            if (ARLEN == 2'b00) begin
+                                NS = SINGLE_RD;
+                                CountBurstNS   = '0;
                             end else begin
-                              NS = BURST_RD;
-                              CountBurstNS   = CountBurstCS + 1'b1;
+                                NS             = (ARLEN == 2'b01) ? BURST_RD : WRAP_RD;
+                                CountBurstNS   = CountBurstCS + 1'b1;
                             end
                         end else begin
                             NS = IDLE;
@@ -506,7 +517,10 @@ module axi_mem_if
                 end
             end
 
-            BURST_RD:  begin
+            BURST_RD, WRAP_RD:  begin
+                automatic logic [AXI4_ADDRESS_WIDTH-1:0] aligned_address = ARADDR_Q & ~{{{AXI4_ADDRESS_WIDTH - 3}{1'b0}}, ar_size_q};
+                automatic logic [AXI4_ADDRESS_WIDTH-1:0] wrap_boundary = aligned_address + (1 << ar_size_q) * (arlen_fixed_q + 1);
+                automatic logic [AXI4_ADDRESS_WIDTH-1:0] addr = ARADDR_Q + (CountBurstCS << ADDRESS_BITS);
 
                 RRESP   = `OKAY;
                 RID     = ARID_Q;
@@ -515,13 +529,18 @@ module axi_mem_if
 
                 if (RREADY) begin
                     if (ARLEN_Q > 0) begin
-                        NS         = BURST_RD;
                         read_req      = 1'b1; // read the previous address
 
                         decr_ARLEN    = 1'b1;
                         CountBurstNS  = CountBurstCS + 1'b1;
 
-                        address       =  ARADDR_Q + (CountBurstCS << ADDRESS_BITS);
+                        address = addr;
+
+                        if (CS == WRAP_RD) begin
+                            // if we reach wrapping boundary reset counter
+                            if (addr == wrap_boundary)
+                                CountBurstNS = 0;
+                        end
                         RLAST         = 1'b0;
                     end else begin // BURST_LAST
                         RLAST         = 1'b1;
@@ -529,11 +548,10 @@ module axi_mem_if
                         CountBurstNS  = '0;
                     end
                 end else begin // not Ready
-                    NS           = BURST_RD;
                     read_req     = 1'b1; // read the previous address
                     decr_ARLEN   = 1'b0;
-                    address      = ARADDR_Q + ((CountBurstCS - 1) << ADDRESS_BITS);
                     ARREADY      = 1'b0;
+                    address      = address_q;
                 end
             end
 
@@ -552,16 +570,27 @@ module axi_mem_if
                 end
             end
 
-            BURST_WR: begin
+            BURST_WR, WRAP_WR: begin
+
+                automatic logic [AXI4_ADDRESS_WIDTH-1:0] aligned_address = AWADDR_Q & ~{{{AXI4_ADDRESS_WIDTH - 3}{1'b0}}, aw_size_q};
+                automatic logic [AXI4_ADDRESS_WIDTH-1:0] wrap_boundary = aligned_address + (1 << aw_size_q) * (awlen_fixed_q + 1);
+                automatic logic [AXI4_ADDRESS_WIDTH-1:0] addr = AWADDR_Q + (CountBurstCS << ADDRESS_BITS);
                 WREADY   = 1'b1;
                 AWREADY  = 1'b0;
-                address  = AWADDR_Q + (CountBurstCS << ADDRESS_BITS);
+
+
+                address = addr;
+
+                if (CS == WRAP_WR) begin
+                    // if we reach wrapping boundary reset counter
+                    if (addr == wrap_boundary)
+                        CountBurstNS = 0;
+                end
 
                 if (WVALID) begin
                     write_req = 1'b1; // read the previous address
 
                       if (AWLEN_Q > 0) begin
-                          NS           = BURST_WR;
                           decr_AWLEN   = 1'b1;
                           CountBurstNS = CountBurstCS + 1'b1;
                       end else begin
@@ -571,7 +600,6 @@ module axi_mem_if
                 end else begin
                     write_req  = 1'b0; // read the previous address
                     decr_AWLEN = 1'b0;
-                    NS         = BURST_WR;
                 end
             end
 
@@ -629,48 +657,58 @@ module axi_mem_if
 
     // Registers
     always_ff @(posedge ACLK, negedge ARESETn) begin
-      if (ARESETn == 1'b0) begin
-          CS           <= IDLE;
-          CountBurstCS <= '0;
+        if (ARESETn == 1'b0) begin
+            CS           <= IDLE;
+            CountBurstCS <= '0;
 
-          //Read Channel
-          ARLEN_Q      <= '0;
-          ARADDR_Q     <= '0;
-          ARID_Q       <= '0;
-          ARUSER_Q     <= '0;
-          RVALID       <= 1'b0;
+            //Read Channel
+            ARLEN_Q       <= '0;
+            ARADDR_Q      <= '0;
+            ARID_Q        <= '0;
+            ARUSER_Q      <= '0;
+            ar_size_q     <= '0;
+            RVALID        <= 1'b0;
 
-          //Write Channel
-          AWADDR_Q     <= '0;
-          AWID_Q       <= '0;
-          AWUSER_Q     <= '0;
-          AWLEN_Q      <= '0;
-      end else begin
-          CS           <= NS;
-          CountBurstCS <= CountBurstNS;
-          RVALID       <= read_req;
-          if (sample_AR) begin
-              ARLEN_Q  <=  ARLEN;
-              ARID_Q   <=  ARID;
-              ARADDR_Q <=  ARADDR;
-              ARUSER_Q <=  ARUSER;
-          end else begin
-              if(decr_ARLEN)
-                ARLEN_Q  <=  ARLEN_Q - 1'b1;
+            //Write Channel
+            AWADDR_Q      <= '0;
+            AWID_Q        <= '0;
+            AWUSER_Q      <= '0;
+            AWLEN_Q       <= '0;
+            arlen_fixed_q <= '0;
+            awlen_fixed_q <= '0;
+            aw_size_q     <= '0;
+            address_q     <= '0;
+        end else begin
+            CS           <= NS;
+            address_q    <= address;
+            CountBurstCS <= CountBurstNS;
+            RVALID       <= read_req;
+            if (sample_AR) begin
+                ARLEN_Q            <=  ARLEN;
+                ARID_Q             <=  ARID;
+                ARADDR_Q           <=  ARADDR;
+                ARUSER_Q           <=  ARUSER;
+                arlen_fixed_q      <=  ARLEN;
+                ar_size_q          <=  ARSIZE;
+            end else begin
+                if (decr_ARLEN)
+                  ARLEN_Q  <=  ARLEN_Q - 1'b1;
+            end
+
+            if (sample_AW) begin
+                AWADDR_Q  <=  AWADDR;
+                AWID_Q    <=  AWID;
+                AWUSER_Q  <=  AWUSER;
+                aw_size_q <= AWSIZE;
+                awlen_fixed_q[7:0] = AWLEN;
+            end
+
+            case({sample_AW,decr_AWLEN})
+              2'b00: AWLEN_Q  <=  AWLEN_Q;
+              2'b01: AWLEN_Q  <=  AWLEN_Q - 1'b1;
+              2'b10: AWLEN_Q  <=  AWLEN;
+              2'b11: AWLEN_Q  <=  AWLEN   - 1'b1;
+            endcase
           end
-
-          if (sample_AW) begin
-              AWADDR_Q <=  AWADDR;
-              AWID_Q   <=  AWID;
-              AWUSER_Q <=  AWUSER;
-          end
-
-          case({sample_AW,decr_AWLEN})
-          2'b00: AWLEN_Q  <=  AWLEN_Q;
-          2'b01: AWLEN_Q  <=  AWLEN_Q - 1'b1;
-          2'b10: AWLEN_Q  <=  AWLEN;
-          2'b11: AWLEN_Q  <=  AWLEN   - 1'b1;
-          endcase
-      end
-    end
+        end
 endmodule
