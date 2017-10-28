@@ -159,6 +159,7 @@ module axi_mem_if
                      BURST_WR, SINGLE_WR, WRAP_WR,
                      WAIT_WDATA_BURST,
                      WAIT_WDATA_SINGLE,
+                     WAIT_WDATA_BURST_WRAP,
                      BURST_RESP
                     } CS , NS;
 
@@ -405,11 +406,11 @@ module axi_mem_if
                             address        = ARADDR;
                             ARREADY        = 1'b1;
 
-                            if (ARLEN == 2'b0) begin
+                            if (ARLEN == 0) begin
                                 NS = SINGLE_RD;
                                 CountBurstNS   = '0;
                             end else  begin
-                                NS           = (ARLEN == 2'b01) ? BURST_RD : WRAP_RD;
+                                NS           = (ARBURST == 2'b01) ? BURST_RD : WRAP_RD;
                                 CountBurstNS = CountBurstCS + 1'b1;
                             end
                         end else begin
@@ -428,7 +429,7 @@ module axi_mem_if
                                           NS            = SINGLE_WR;
                                           CountBurstNS  = 0;
                                     end else begin
-                                        NS            = (AWLEN == 2'b01) ? BURST_WR : WRAP_WR;
+                                        NS            = (AWBURST == 2'b01) ? BURST_WR : WRAP_WR;
                                         CountBurstNS  = 1;
                                     end
                                 end else begin // GOT ADDRESS WRITE, not DATA
@@ -440,7 +441,7 @@ module axi_mem_if
                                         NS           =  WAIT_WDATA_SINGLE;
                                         CountBurstNS = 0;
                                     end else begin
-                                        NS           =  WAIT_WDATA_BURST;
+                                        NS           =  (AWBURST == 2'b01) ? WAIT_WDATA_BURST : WAIT_WDATA_BURST_WRAP;
                                         CountBurstNS = 0;
                                     end
                                 end
@@ -461,11 +462,11 @@ module axi_mem_if
                                 address         =  AWADDR;
                                 decr_AWLEN      = 1'b1;
 
-                                if (AWLEN == 2'b00) begin
+                                if (AWLEN == 0) begin
                                     NS              = SINGLE_WR;
                                     CountBurstNS    = 0;
                                 end else begin
-                                    NS              = (AWLEN == 2'b01) ? BURST_WR : WRAP_WR;
+                                    NS              = (AWBURST == 2'b01) ? BURST_WR : WRAP_WR;
                                     CountBurstNS    = 1;
                                 end
                             end else begin // GOT ADDRESS WRITE, not DATA
@@ -476,7 +477,7 @@ module axi_mem_if
                                     NS           =  WAIT_WDATA_SINGLE;
                                     CountBurstNS = 0;
                                 end else begin
-                                    NS           =  WAIT_WDATA_BURST;
+                                    NS           =  (AWBURST == 2'b01) ? WAIT_WDATA_BURST : WAIT_WDATA_BURST_WRAP;
                                     CountBurstNS = 0;
                                 end
                             end
@@ -486,11 +487,11 @@ module axi_mem_if
                             address        = ARADDR;
                             ARREADY        = 1'b1;
 
-                            if (ARLEN == 2'b00) begin
+                            if (ARLEN == 0) begin
                                 NS = SINGLE_RD;
                                 CountBurstNS   = '0;
                             end else begin
-                                NS             = (ARLEN == 2'b01) ? BURST_RD : WRAP_RD;
+                                NS             = (ARBURST == 2'b01) ? BURST_RD : WRAP_RD;
                                 CountBurstNS   = CountBurstCS + 1'b1;
                             end
                         end else begin
@@ -575,10 +576,9 @@ module axi_mem_if
                 automatic logic [AXI4_ADDRESS_WIDTH-1:0] aligned_address = AWADDR_Q & ~{{{AXI4_ADDRESS_WIDTH - 3}{1'b0}}, aw_size_q};
                 automatic logic [AXI4_ADDRESS_WIDTH-1:0] wrap_boundary = aligned_address + (1 << aw_size_q) * (awlen_fixed_q + 1);
                 automatic logic [AXI4_ADDRESS_WIDTH-1:0] addr = AWADDR_Q + (CountBurstCS << ADDRESS_BITS);
+
                 WREADY   = 1'b1;
                 AWREADY  = 1'b0;
-
-
                 address = addr;
 
                 if (CS == WRAP_WR) begin
@@ -618,19 +618,18 @@ module axi_mem_if
                 end
             end
 
-            WAIT_WDATA_BURST: begin
+            WAIT_WDATA_BURST, WAIT_WDATA_BURST_WRAP: begin
                 AWREADY  = 1'b0;
                 WREADY   = 1'b1;
                 address  =  AWADDR_Q;
 
                 if (WVALID) begin
                     write_req    = 1'b1;
-                    NS           = BURST_WR;
+                    NS           = (CS == WAIT_WDATA_BURST) ? BURST_WR : WRAP_WR;
                     CountBurstNS = 1;
                     decr_AWLEN   = 1'b1;
                 end else begin
                     write_req    = 1'b0;
-                    NS           = WAIT_WDATA_BURST; // wait for data
                     CountBurstNS = '0;
                 end
             end
