@@ -1,17 +1,12 @@
-/* Copyright (C) 2017 ETH Zurich, University of Bologna
- * All rights reserved.
- *
- * This code is under development and not yet released to the public.
- * Until it is released, the code is under the copyright of ETH Zurich and
- * the University of Bologna, and may contain confidential and/or unpublished 
- * work. Any reuse/redistribution is strictly forbidden without written
- * permission from ETH Zurich.
- *
- * Bug fixes and contributions will eventually be released under the
- * SolderPad open hardware license in the context of the PULP platform
- * (http://www.pulp-platform.org), under the copyright of ETH Zurich and the
- * University of Bologna.
- */
+// Copyright 2014-2018 ETH Zurich and University of Bologna.
+// Copyright and related rights are licensed under the Solderpad Hardware
+// License, Version 0.51 (the “License”); you may not use this file except in
+// compliance with the License.  You may obtain a copy of the License at
+// http://solderpad.org/licenses/SHL-0.51. Unless required by applicable law
+// or agreed to in writing, software, hardware and materials distributed under
+// this License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
 
 // `timescale 1ns/1ps
 // `define SOD 0.5
@@ -24,7 +19,7 @@
 `define DECERR 2'b11
 
 module   axi_mem_if_var_latency
-#( 
+#(
     parameter AXI4_ADDRESS_WIDTH = 32,
     parameter AXI4_RDATA_WIDTH   = 64,
     parameter AXI4_WDATA_WIDTH   = 64,
@@ -439,7 +434,7 @@ module   axi_mem_if_var_latency
     assign  RREADY    =   RREADY_i | ~RVALID[LATENCY_R-1];
     assign  BREADY    =   BREADY_i | ~BVALID[LATENCY_B-1];
     assign  WREADY_o  =   WREADY;
-    
+
     axi_mem_if
     #(
         .AXI4_ADDRESS_WIDTH(AXI4_ADDRESS_WIDTH),
@@ -451,7 +446,7 @@ module   axi_mem_if_var_latency
         .BUFF_DEPTH_SLAVE(BUFF_DEPTH_SLAVE)
     )
     axi_mem_if_i
-    ( 
+    (
         .ACLK(ACLK),
         .ARESETn(ARESETn),
 
