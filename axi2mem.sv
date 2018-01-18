@@ -35,9 +35,9 @@ module axi2mem #(
 );
 
     // AXI has the following rules governing the use of bursts:
-    // • for wrapping bursts, the burst length must be 2, 4, 8, or 16
-    // • a burst must not cross a 4KB address boundary
-    // • early termination of bursts is not supported.
+    // - for wrapping bursts, the burst length must be 2, 4, 8, or 16
+    // - a burst must not cross a 4KB address boundary
+    // - early termination of bursts is not supported.
     typedef enum logic [1:0] { FIXED = 2'b00, INCR = 2'b01, WRAP = 2'b10} axi_burst_t;
 
     localparam LOG_NR_BYTES = $clog2(AXI_DATA_WIDTH/8);
