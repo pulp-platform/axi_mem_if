@@ -694,7 +694,7 @@ module axi_mem_if
                 AWID_Q    <=  AWID;
                 AWUSER_Q  <=  AWUSER;
                 aw_size_q <= AWSIZE;
-                awlen_fixed_q[7:0] = AWLEN;
+                awlen_fixed_q[7:0] <= AWLEN;
             end
 
             case({sample_AW,decr_AWLEN})
