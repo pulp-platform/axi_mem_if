@@ -166,7 +166,6 @@ module axi2mem #(
                     we_o           = 1'b1;
                     state_d        = (slave.w_last) ? SEND_B : WRITE;
                     cnt_d          = 1;
-                    state_d = WRITE;
                 end
             end
 
@@ -272,9 +271,9 @@ module axi2mem #(
       assert property (
       @(posedge clk_i) slave.ar_valid |-> (slave.ar_size == LOG_NR_BYTES)) else $fatal ("Only full data lane transfers allowed");
     assert property (
-      @(posedge clk_i) slave.aw_valid |-> (slave.ar_addr[LOG_NR_BYTES-1:0] == '0)) else $fatal ("Unaligned accesses are not allowed at the moment");
+      @(posedge clk_i) slave.aw_valid |-> (slave.aw_addr[LOG_NR_BYTES-1:0] == '0)) else $fatal ("Unaligned accesses are not allowed at the moment");
     assert property (
-      @(posedge clk_i) slave.ar_valid |-> (slave.aw_addr[LOG_NR_BYTES-1:0] == '0)) else $fatal ("Unaligned accesses are not allowed at the moment");
+      @(posedge clk_i) slave.ar_valid |-> (slave.ar_addr[LOG_NR_BYTES-1:0] == '0)) else $fatal ("Unaligned accesses are not allowed at the moment");
     `endif
     `endif
     // --------------
