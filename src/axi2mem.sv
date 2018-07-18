@@ -166,7 +166,6 @@ module axi2mem #(
                     we_o           = 1'b1;
                     state_d        = (slave.w_last) ? SEND_B : WRITE;
                     cnt_d          = 1;
-                    state_d = WRITE;
                 end
             end
 
