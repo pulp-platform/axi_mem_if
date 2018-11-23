@@ -56,7 +56,7 @@ module axi2mem #(
     logic [AXI_ADDR_WIDTH-1:0] req_addr_d, req_addr_q;
     logic [7:0]                cnt_d, cnt_q;
 
-    function automatic logic [AXI_ADDR_WIDTH-1:0] get_wrap_bounadry (input logic [AXI_ADDR_WIDTH-1:0] unaligned_address, input logic [7:0] len);
+    function automatic logic [AXI_ADDR_WIDTH-1:0] get_wrap_boundary (input logic [AXI_ADDR_WIDTH-1:0] unaligned_address, input logic [7:0] len);
         logic [AXI_ADDR_WIDTH-1:0] warp_address = '0;
         //  for wrapping transfers ax_len can only be of size 1, 3, 7 or 15
         if (len == 4'b1)
@@ -79,7 +79,7 @@ module axi2mem #(
     always_comb begin
         // address generation
         aligned_address = {ax_req_q.addr[AXI_ADDR_WIDTH-1:LOG_NR_BYTES], {{LOG_NR_BYTES}{1'b0}}};
-        wrap_boundary = get_wrap_bounadry(ax_req_q.addr, ax_req_q.len);
+        wrap_boundary = get_wrap_boundary(ax_req_q.addr, ax_req_q.len);
         // this will overflow
         upper_wrap_boundary = wrap_boundary + ((ax_req_q.len + 1) << LOG_NR_BYTES);
         // calculate consecutive address
