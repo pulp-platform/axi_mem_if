@@ -1,4 +1,4 @@
 axi_mem_if:
   files: [
-    src/axi2mem.sv,
+    src/axi_mem_if.sv,
   ]

@@ -17,7 +17,7 @@
 //              Supports all burst accesses but only on aligned addresses and with full data width.
 //              Assertions should guide you if there is something unsupported happening.
 //
-module axi2mem #(
+module axi_mem_if #(
     parameter int unsigned AXI_ID_WIDTH      = 10,
     parameter int unsigned AXI_ADDR_WIDTH    = 64,
     parameter int unsigned AXI_DATA_WIDTH    = 64,
