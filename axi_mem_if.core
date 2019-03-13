@@ -5,9 +5,6 @@ filesets:
   rtl:
     files:
       - src/axi2mem.sv
-      - src/deprecated/axi_mem_if.sv
-      - src/deprecated/axi_mem_if_var_latency.sv
-      - src/deprecated/axi_mem_if_wrap.sv
     file_type : systemVerilogSource
 
 targets:
