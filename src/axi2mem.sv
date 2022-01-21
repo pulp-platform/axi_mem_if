@@ -30,7 +30,9 @@ module axi2mem #(
     output logic                        we_o,
     output logic [AXI_ADDR_WIDTH-1:0]   addr_o,
     output logic [AXI_DATA_WIDTH/8-1:0] be_o,
+    output logic [AXI_USER_WIDTH-1:0]   user_o,
     output logic [AXI_DATA_WIDTH-1:0]   data_o,
+    input  logic [AXI_USER_WIDTH-1:0]   user_i,
     input  logic [AXI_DATA_WIDTH-1:0]   data_i
 );
 
@@ -93,6 +95,7 @@ module axi2mem #(
         cnt_d      = cnt_q;
         // Memory default assignments
         data_o = slave.w_data;
+        user_o = slave.w_user;
         be_o   = slave.w_strb;
         we_o   = 1'b0;
         req_o  = 1'b0;
@@ -107,7 +110,7 @@ module axi2mem #(
         slave.r_resp   = '0;
         slave.r_last   = '0;
         slave.r_id     = ax_req_q.id;
-        slave.r_user   = '0;
+        slave.r_user   = user_i;
         // slave write data channel
         slave.w_ready  = 1'b0;
         // write response channel
@@ -176,6 +179,7 @@ module axi2mem #(
                 // send the response
                 slave.r_valid = 1'b1;
                 slave.r_data  = data_i;
+                slave.r_user  = user_i;
                 slave.r_id    = ax_req_q.id;
                 slave.r_last  = (cnt_q == ax_req_q.len + 1);
 
