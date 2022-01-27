@@ -59,18 +59,18 @@ module axi2mem #(
     logic [7:0]                cnt_d, cnt_q;
 
     function automatic logic [AXI_ADDR_WIDTH-1:0] get_wrap_boundary (input logic [AXI_ADDR_WIDTH-1:0] unaligned_address, input logic [7:0] len);
-        logic [AXI_ADDR_WIDTH-1:0] warp_address = '0;
+        logic [AXI_ADDR_WIDTH-1:0] wrap_address = '0;
         //  for wrapping transfers ax_len can only be of size 1, 3, 7 or 15
         if (len == 4'b1)
-            warp_address[AXI_ADDR_WIDTH-1:1+LOG_NR_BYTES] = unaligned_address[AXI_ADDR_WIDTH-1:1+LOG_NR_BYTES];
+            wrap_address[AXI_ADDR_WIDTH-1:1+LOG_NR_BYTES] = unaligned_address[AXI_ADDR_WIDTH-1:1+LOG_NR_BYTES];
         else if (len == 4'b11)
-            warp_address[AXI_ADDR_WIDTH-1:2+LOG_NR_BYTES] = unaligned_address[AXI_ADDR_WIDTH-1:2+LOG_NR_BYTES];
+            wrap_address[AXI_ADDR_WIDTH-1:2+LOG_NR_BYTES] = unaligned_address[AXI_ADDR_WIDTH-1:2+LOG_NR_BYTES];
         else if (len == 4'b111)
-            warp_address[AXI_ADDR_WIDTH-1:3+LOG_NR_BYTES] = unaligned_address[AXI_ADDR_WIDTH-3:2+LOG_NR_BYTES];
+            wrap_address[AXI_ADDR_WIDTH-1:3+LOG_NR_BYTES] = unaligned_address[AXI_ADDR_WIDTH-3:2+LOG_NR_BYTES];
         else if (len == 4'b1111)
-            warp_address[AXI_ADDR_WIDTH-1:4+LOG_NR_BYTES] = unaligned_address[AXI_ADDR_WIDTH-3:4+LOG_NR_BYTES];
+            wrap_address[AXI_ADDR_WIDTH-1:4+LOG_NR_BYTES] = unaligned_address[AXI_ADDR_WIDTH-3:4+LOG_NR_BYTES];
 
-        return warp_address;
+        return wrap_address;
     endfunction
 
     logic [AXI_ADDR_WIDTH-1:0] aligned_address;
@@ -192,10 +192,10 @@ module axi2mem #(
                     case (ax_req_q.burst)
                         FIXED, INCR: addr_o = cons_addr;
                         WRAP:  begin
-                            // check if the address reached warp boundary
+                            // check if the address reached wrap boundary
                             if (cons_addr == upper_wrap_boundary) begin
                                 addr_o = wrap_boundary;
-                            // address warped beyond boundary
+                            // address wrapped beyond boundary
                             end else if (cons_addr > upper_wrap_boundary) begin
                                 addr_o = ax_req_q.addr + ((cnt_q - ax_req_q.len) << LOG_NR_BYTES);
                             // we are still in the incremental regime
@@ -235,10 +235,10 @@ module axi2mem #(
 
                         FIXED, INCR: addr_o = cons_addr;
                         WRAP:  begin
-                            // check if the address reached warp boundary
+                            // check if the address reached wrap boundary
                             if (cons_addr == upper_wrap_boundary) begin
                                 addr_o = wrap_boundary;
-                            // address warped beyond boundary
+                            // address wrapped beyond boundary
                             end else if (cons_addr > upper_wrap_boundary) begin
                                 addr_o = ax_req_q.addr + ((cnt_q - ax_req_q.len) << LOG_NR_BYTES);
                             // we are still in the incremental regime
